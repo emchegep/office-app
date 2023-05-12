@@ -48,14 +48,14 @@ class OfficecontrollerTest extends TestCase
 	/**
 	 * @test.
 	 */
-	public function test_it_filters_by_host_id()
+	public function test_it_filters_by_user_id()
 	{
 		Office::factory(3)->create();
 
-		$host = User::factory()->create();
-		$office = Office::factory()->for($host)->create();
+		$user = User::factory()->create();
+		$office = Office::factory()->for($user)->create();
 
-		$response = $this->get('/api/offices?host_id='.$host->id);
+		$response = $this->get('/api/offices?user_id='.$user->id);
 
 		$response->assertOk();
 		$response->assertJsonCount(1,'data');
@@ -64,16 +64,16 @@ class OfficecontrollerTest extends TestCase
 	/**
 	 * @test.
 	 */
-	public function test_it_filters_by_user_id()
+	public function test_it_filters_by_visitor_id()
 	{
 		Office::factory(3)->create();
 
-		$user = User::factory()->create();
+		$visitor = User::factory()->create();
 		$office = Office::factory()->create();
 
-		Reservation::factory()->for($office)->for($user)->create(0);
+		Reservation::factory()->for($office)->for($visitor)->create(0);
 
-		$response = $this->get('/api/offices?user_id='.$user->id);
+		$response = $this->get('/api/offices?visitor_id='.$visitor->id);
 
 		$response->assertOk();
 		$response->assertJsonCount(1,'data');
@@ -92,15 +92,17 @@ class OfficecontrollerTest extends TestCase
 		$office->tags()->attach($tag);
 		$office->images()->create(['path' => 'image.png']);
 
+
 		$response = $this->get('/api/offices');
 
-		$response->assertOk();
+		$response->assertOk()->dump();
 		$this->assertIsArray($response->json('data')[0]['tags']);
 		$this->assertCount(1,$response->json('data')[0]['tags']);
 		$this->assertIsArray($response->json('data')[0]['images']);
 		$this->assertCount(1,$response->json('data')[0]['images']);
 		$this->assertEquals($user->id, $response->json('data')[0]['user']['id']);
 	}
+
 
 	/**
 	 * @test.
@@ -165,12 +167,64 @@ class OfficecontrollerTest extends TestCase
 
 		$response = $this->get('/api/offices/'.$office->id);
 
-		$response->assertOk()->dump();
+		$response->assertOk();
 		$this->assertIsArray($response->json('data')['tags']);
 		$this->assertCount(1,$response->json('data')['tags']);
 		$this->assertIsArray($response->json('data')['images']);
 		$this->assertCount(1,$response->json('data')['images']);
 		$this->assertEquals($user->id, $response->json('data')['user']['id']);
 	}
+
+    /**
+     * @test.
+     */
+    public function test_it_create_an_office()
+    {
+        $user = User::factory()->create();
+        $tag1 = Tag::factory()->create();
+        $tag2 = Tag::factory()->create();
+
+        $this->actingAs($user);
+
+        $response = $this->postJson('api/offices',[
+            'title' => 'Title of the office',
+            'description' => 'description of the office',
+            'lat' => '39.773365928330726',
+            'lng' => '-8.807653439864218',
+            'address_line1' => 'address',
+            'price_per_day' => 10_000,
+            'monthly_discount' => 5,
+            'tags' => [
+                $tag1->id, $tag2->id
+            ]
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.title','Title of the office')
+            ->assertJsonPath('data.approval_status',Office::APPROVAL_PENDING)
+            ->assertJsonPath('data.user.id', $user->id)
+            ->assertJsonCount(2,'data.tags');
+
+        $this->assertDatabaseHas('offices',[
+            'title' => 'Title of the office'
+        ]);
+    }
+
+    /**
+     * @test.
+     */
+    public function test_it_doesnt_allow_creating_office_if_scope_not_provided()
+    {
+        $user = User::factory()->createQuietly();
+
+        $token = $user->createToken('test',[]);
+
+
+        $response = $this->postJson('api/offices',[],[
+            'Authorization' => 'Bearer '.$token->plainTextToken
+        ]);
+
+        $response->assertStatus(403);
+    }
 }
 
