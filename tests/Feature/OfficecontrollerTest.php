@@ -226,5 +226,45 @@ class OfficecontrollerTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    /**
+     * @test.
+     */
+    public function test_it_updates_an_office()
+    {
+        $user = User::factory()->create();
+        $tags = Tag::factory(2)->create();
+        $office = Office::factory()->for($user)->create();
+
+        $office->tags()->attach($tags);
+
+        $this->actingAs($user);
+
+        $response = $this->putJson('api/offices/'.$office->id,[
+            'title' => 'Amazing office'
+        ]);
+
+       $response->assertOk()
+           ->assertJsonPath('data.title','Amazing office');
+    }
+
+    /**
+     * @test.
+     */
+    public function test_it_doesnt_update_an_office_that_doesnt_belong_to_user()
+    {
+        $user = User::factory()->create();
+        $anotherUser = User::factory()->create();
+
+        $office = Office::factory()->for($anotherUser)->create();
+
+        $this->actingAs($user);
+
+        $response = $this->putJson('api/offices/'.$office->id,[
+            'title' => 'Amazing office'
+        ]);
+
+        $response->assertStatus(403);
+    }
 }
 

@@ -37,7 +37,7 @@ class OfficePolicy
      */
     public function update(User $user, Office $office): bool
     {
-        //
+        return $user->id === $office->user_id;
     }
 
     /**
