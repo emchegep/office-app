@@ -6,8 +6,10 @@ use App\Models\Office;
 use App\Models\Reservation;
 use App\Models\Tag;
 use App\Models\User;
+use App\Notifications\OfficePendingApprovalNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class OfficecontrollerTest extends TestCase
@@ -95,7 +97,7 @@ class OfficecontrollerTest extends TestCase
 
 		$response = $this->get('/api/offices');
 
-		$response->assertOk()->dump();
+		$response->assertOk();
 		$this->assertIsArray($response->json('data')[0]['tags']);
 		$this->assertCount(1,$response->json('data')[0]['tags']);
 		$this->assertIsArray($response->json('data')[0]['images']);
@@ -180,6 +182,10 @@ class OfficecontrollerTest extends TestCase
      */
     public function test_it_create_an_office()
     {
+        Notification::fake();
+
+        $admin = User::factory()->create(['name' => 'peter']);
+
         $user = User::factory()->create();
         $tag1 = Tag::factory()->create();
         $tag2 = Tag::factory()->create();
@@ -208,6 +214,8 @@ class OfficecontrollerTest extends TestCase
         $this->assertDatabaseHas('offices',[
             'title' => 'Title of the office'
         ]);
+
+        Notification::assertSentTo($admin, OfficePendingApprovalNotification::class);
     }
 
     /**
@@ -265,6 +273,70 @@ class OfficecontrollerTest extends TestCase
         ]);
 
         $response->assertStatus(403);
+    }
+
+    /**
+     * @test.
+     */
+    public function test_it_marks_the_office_as_pending_if_dirty()
+    {
+        $admin = User::factory()->create(['name' => 'peter']);
+
+        Notification::fake();
+
+        $user = User::factory()->create();
+        $office = Office::factory()->for($user)->create();
+
+        $this->actingAs($user);
+
+        $response = $this->putJson('api/offices/'.$office->id,[
+            'lat' => '40.773365928330726'
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('offices',[
+            'id' => $office->id,
+            'approval_status' => Office::APPROVAL_PENDING
+        ]);
+
+        Notification::assertSentTo($admin, OfficePendingApprovalNotification::class);
+    }
+
+    /**
+     * @test.
+     */
+    public function test_it_user_can_delete_their_office()
+    {
+        $user = User::factory()->create();
+        $office = Office::factory()->for($user)->create();
+
+        $this->actingAs($user);
+
+        $response = $this->deleteJson('api/offices/'.$office->id);
+
+        $response->assertOk();
+        $this->assertSoftDeleted($office);
+    }
+
+    /**
+     * @test.
+     */
+    public function test_it_cannot_delete_an_office_that_has_reservation()
+    {
+        $user = User::factory()->create();
+        $office = Office::factory()->for($user)->create();
+
+        Reservation::factory(3)->for($office)->create();
+
+        $this->actingAs($user);
+
+        $response = $this->deleteJson('api/offices/'.$office->id);
+
+        $response->assertUnprocessable();
+        $this->assertDatabaseHas('offices',[
+            'id' => $office->id,
+            'deleted_at' => null
+        ]);
     }
 }
 
