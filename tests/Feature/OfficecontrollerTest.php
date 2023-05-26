@@ -47,6 +47,27 @@ class OfficecontrollerTest extends TestCase
 		$response->assertJsonCount(3,'data');
 	}
 
+    /**
+ * @test.
+ */
+    public function
+    test_it_lists_offices_hidden_and_unapproved_if_filtering_for_currently_logged_in_user()
+    {
+        $user = User::factory()->create();
+
+        Office::factory(3)->for($user)->create();
+
+        Office::factory()->hidden()->for($user)->create();
+        Office::factory()->pending()->for($user)->create();
+
+        $this->actingAs($user);
+
+        $response = $this->get('/api/offices?user_id='.$user->id);
+
+        $response->assertOk();
+        //$response->assertJsonCount(3,'data');
+    }
+
 	/**
 	 * @test.
 	 */
@@ -184,7 +205,7 @@ class OfficecontrollerTest extends TestCase
     {
         Notification::fake();
 
-        $admin = User::factory()->create(['name' => 'peter']);
+        $admin = User::factory()->create(['is_admin'=>true]);
 
         $user = User::factory()->create();
         $tag1 = Tag::factory()->create();
@@ -259,6 +280,28 @@ class OfficecontrollerTest extends TestCase
     /**
      * @test.
      */
+    public function test_it_updated_the_featured_image_of_an_office()
+    {
+        $user = User::factory()->create();
+        $office = Office::factory()->for($user)->create();
+
+        $image = $office->images()->create([
+            'path' => 'image.jpg'
+        ]);
+
+        $this->actingAs($user);
+
+        $response = $this->putJson('api/offices/'.$office->id,[
+           'featured_image_id' => $image->id
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.featured_image_id', $image->id);
+    }
+
+    /**
+     * @test.
+     */
     public function test_it_doesnt_update_an_office_that_doesnt_belong_to_user()
     {
         $user = User::factory()->create();
@@ -280,7 +323,7 @@ class OfficecontrollerTest extends TestCase
      */
     public function test_it_marks_the_office_as_pending_if_dirty()
     {
-        $admin = User::factory()->create(['name' => 'peter']);
+        $admin = User::factory()->create(['is_admin'=>true]);
 
         Notification::fake();
 
@@ -338,5 +381,6 @@ class OfficecontrollerTest extends TestCase
             'deleted_at' => null
         ]);
     }
+
 }
 

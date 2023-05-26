@@ -29,8 +29,10 @@ class OfficeController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $offices = Office::query()
-			->where('approval_status',Office::APPROVAL_APPROVED)
-			->where('hidden',false)
+            ->when(request('user_id') and auth()->user() and request('user_id') == auth()->id(),
+                fn($builder) => $builder,
+                fn($builder) => $builder->where('approval_status',Office::APPROVAL_APPROVED)
+                    ->where('hidden',false))
 			->when(request('user_id'),
 				fn($builder, $userId) => $builder->whereUserId($userId))
 			->when(request('visitor_id'),
@@ -89,7 +91,7 @@ class OfficeController extends Controller
         });
 
         Notification::send(
-            User::firstWhere('name','peter'),
+            User::where('is_admin',true)->get(),
             new OfficePendingApprovalNotification($office));
 
         return OfficeResource::make($office->load(['images','tags','user']));
@@ -108,10 +110,10 @@ class OfficeController extends Controller
      */
     public function update(Office $office): JsonResource
     {
-        if (! auth()->user()->tokenCan('office.update'))
-        {
-            abort(Response::HTTP_FORBIDDEN);
-        }
+        abort_unless(
+            auth()->user()->tokenCan('office.update'),
+            Response::HTTP_FORBIDDEN
+        );
 
         $this->authorize('update', $office);
 
@@ -139,7 +141,7 @@ class OfficeController extends Controller
 
         if ($requiresApproval){
             Notification::send(
-                User::firstWhere('name','peter'),
+                User::where('is_admin',true)->get(),
                 new OfficePendingApprovalNotification($office)
             );
         }

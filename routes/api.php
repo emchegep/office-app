@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\OfficeController;
+use App\Http\Controllers\OfficeImageController;
 use App\Http\Controllers\TagController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,3 +29,9 @@ Route::put('/offices/{office}', [OfficeController::class, 'update'])
     ->middleware('auth:sanctum','verified');
 Route::delete('/offices/{office}', [OfficeController::class, 'destroy'])
     ->middleware('auth:sanctum','verified');
+
+// Photos
+Route::post('/offices/{office}/images', [OfficeImageController::class, 'store'])
+    ->middleware('auth:sanctum','verified');
+Route::delete('/offices/{office}/images/{image}', [OfficeImageController::class,
+    'delete'])->middleware('auth:sanctum','verified');
