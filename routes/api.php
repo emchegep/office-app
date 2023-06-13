@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\HostReservationController;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\OfficeImageController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\UserReservationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,8 +32,16 @@ Route::put('/offices/{office}', [OfficeController::class, 'update'])
 Route::delete('/offices/{office}', [OfficeController::class, 'destroy'])
     ->middleware('auth:sanctum','verified');
 
-// Photos
+// Office Photos
 Route::post('/offices/{office}/images', [OfficeImageController::class, 'store'])
     ->middleware('auth:sanctum','verified');
-Route::delete('/offices/{office}/images/{image}', [OfficeImageController::class,
-    'delete'])->middleware('auth:sanctum','verified');
+Route::delete('/offices/{office}/images/{image}', [OfficeImageController::class, 'delete'])
+    ->middleware('auth:sanctum','verified');
+
+// User Reservation...
+Route::get('/reservations',[UserReservationController::class,'index'])
+    ->middleware('auth:sanctum','verified');
+
+// host Reservation...
+Route::get('/host/reservations',[HostReservationController::class,'index'])
+    ->middleware('auth:sanctum','verified');

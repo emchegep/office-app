@@ -7,14 +7,15 @@ use App\Models\Reservation;
 use App\Models\Tag;
 use App\Models\User;
 use App\Notifications\OfficePendingApprovalNotification;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class OfficecontrollerTest extends TestCase
 {
-	use RefreshDatabase;
+	use LazilyRefreshDatabase;
 
 	/**
 	 * @test.
@@ -350,15 +351,26 @@ class OfficecontrollerTest extends TestCase
      */
     public function test_it_user_can_delete_their_office()
     {
+        Storage::put('/office_image.jpg', 'empty');
+
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
+
+        $image = $office->images()->create([
+            'path' => 'office_image.jpg'
+        ]);
 
         $this->actingAs($user);
 
         $response = $this->deleteJson('api/offices/'.$office->id);
 
         $response->assertOk();
+
         $this->assertSoftDeleted($office);
+
+        $this->assertModelMissing($image);
+
+        Storage::assertMissing('office_image.jpg');
     }
 
     /**
@@ -376,10 +388,7 @@ class OfficecontrollerTest extends TestCase
         $response = $this->deleteJson('api/offices/'.$office->id);
 
         $response->assertUnprocessable();
-        $this->assertDatabaseHas('offices',[
-            'id' => $office->id,
-            'deleted_at' => null
-        ]);
+        $this->assertNotSoftDeleted($office);
     }
 
 }

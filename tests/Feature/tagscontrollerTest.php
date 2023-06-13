@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class tagscontrollerTest extends TestCase
 {
+    use LazilyRefreshDatabase;
 	/**
 	 * @test
 	 */

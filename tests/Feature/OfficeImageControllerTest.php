@@ -4,21 +4,21 @@ namespace Tests\Feature;
 
 use App\Models\Office;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class OfficeImageControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     /**
      * @test.
      */
     public function testItUploadsAnImageAndStoresItUnderTheOffice()
     {
-        Storage::fake('public');
+        Storage::fake();
 
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
@@ -32,7 +32,7 @@ class OfficeImageControllerTest extends TestCase
 
         $response->assertCreated();
 
-        Storage::disk('public')->assertExists($response->json('data.path'));
+        Storage::assertExists($response->json('data.path'));
     }
 
     /**
