@@ -31,6 +31,11 @@ class Reservation extends Model
 		return $this->belongsTo(Office::class);
 	}
 
+    public function scopeActiveBetween($query, $from, $to):void
+    {
+        $query->whereStatus(Reservation::STATUS_ACTIVE)
+            ->betweenDates($from,$to);
+    }
     public function scopeBetweenDates(Builder $query,$from,$to): void
     {
        $query->where(function ($query) use ($from, $to){
