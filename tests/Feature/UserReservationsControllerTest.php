@@ -48,21 +48,24 @@ class UserReservationsControllerTest extends TestCase
         $toDate = '2023-04-04';
 
         // Within the date range
-       Reservation::factory()->for($user)->create([
+       $reservations = Reservation::factory()->for($user)->createMany([
+           [
            'start_date' => '2023-03-01',
            'end_date' => '2023-03-15'
+            ],
+           [
+               'start_date' => '2023-03-25',
+               'end_date' => '2023-04-15'
+           ],
+           [
+               'start_date' => '2023-03-25',
+               'end_date' => '2023-03-29'
+           ],
+           [
+               'start_date' => '2023-03-01',
+               'end_date' => '2023-04-15'
+           ],
        ]);
-
-        Reservation::factory()->for($user)->create([
-            'start_date' => '2023-03-25',
-            'end_date' => '2023-04-15'
-        ]);
-
-        Reservation::factory()->for($user)->create([
-            'start_date' => '2023-03-25',
-            'end_date' => '2023-03-29'
-        ]);
-
         // Within the range but belongs to a different user
         Reservation::factory()->create([
             'start_date' => '2023-03-25',
@@ -87,7 +90,7 @@ class UserReservationsControllerTest extends TestCase
                 'to_date' => $toDate
             ]));
 
-        $response->assertJsonCount(3,'data');
+        $response->assertJsonCount(4,'data');
     }
 
     public function testItFiltersReservationsByStatus()

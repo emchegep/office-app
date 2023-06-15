@@ -6,6 +6,7 @@ use App\Http\Resources\ReservationResource;
 use App\Models\Reservation;
 use App\Http\Requests\StoreReservationRequest;
 use App\Http\Requests\UpdateReservationRequest;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
@@ -34,12 +35,7 @@ class UserReservationController extends Controller
                 fn($query) => $query->where('status',request('status'))
             )
             ->when(request('from_date') && request('to_date'),
-                function ($query) {
-                        $query->where(function ($query){
-                         return $query->whereBetween('start_date',[request('from_date'),request('to_date')])
-                                ->orWhereBetween('end_date', [request('from_date'),request('to_date')]);
-                        });
-                }
+               fn($query) => $query->betweenDates(request('from_date'),request('to_date'))
             )
             ->with(['office.featuredImage'])
             ->paginate(20);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,4 +30,18 @@ class Reservation extends Model
 	{
 		return $this->belongsTo(Office::class);
 	}
+
+    public function scopeBetweenDates(Builder $query,$from,$to): void
+    {
+       $query->where(function ($query) use ($from, $to){
+             $query
+                 ->whereBetween('start_date',[$from, $to])
+                 ->orWhereBetween('end_date', [$from, $to])
+                ->orwhere(function ($query) use ($from, $to){
+                    $query
+                        ->where('start_date','<',$from)
+                        ->where('end_date','>',$to);
+           });
+        });
+    }
 }
